@@ -1,0 +1,3 @@
+[submodule "breakup"]
+    path = external/breakup
+    url = https://github.com/andreasaporito/NASA-breakup-model-cpp/tree/master

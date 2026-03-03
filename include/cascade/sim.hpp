@@ -46,7 +46,7 @@ inline constexpr bool always_false_v = false;
 
 } // namespace detail
 
-namespace dynamics
+namespaceics
 {
 
 CASCADE_DLL_PUBLIC std::vector<std::pair<heyoka::expression, heyoka::expression>> kepler(double = 1.);
