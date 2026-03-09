@@ -20,7 +20,8 @@ class NASABreakupConfig:
     
     def __init__(self, 
                  breakup_model_path: str = "/home/andrea/LSMS_project/NASA-breakup-model-cpp/build_iridium_cosmos/breakupModel",
-                 min_characteristic_length: float = 0.05):
+                 min_characteristic_length: float = 0.05,
+                 enforce_mass_conservation: bool = True):
         """
         Initialize the NASA Breakup Model wrapper.
         
@@ -33,6 +34,7 @@ class NASABreakupConfig:
         """
         self.breakup_model_path = breakup_model_path
         self.min_characteristic_length = min_characteristic_length
+        self.enforce_mass_conservation = enforce_mass_conservation
         
     def create_collision_config(self,
                                obj1_id: int,
@@ -107,6 +109,7 @@ class NASABreakupConfig:
         config_content = {
             'simulation': {
                 'minimalCharacteristicLength': self.min_characteristic_length,
+                'enforceMassConservation': self.enforce_mass_conservation,
                 'simulationType': 'COLLISION',
                 'inputSource': [os.path.join(temp_dir, 'collision_data.yaml')]
             },
@@ -241,6 +244,7 @@ class FragmentParser:
         fragments = {
             'id': [],
             'name': [],
+            'parent_id': [],
             'mass': [],
             'position': [],
             'velocity': [],
@@ -263,6 +267,8 @@ class FragmentParser:
                     try:
                         frag_id = int(row[0])
                         frag_name = row[1]
+                        parent_id_str = frag_name.split('_')[1].split('-')[0]
+                        parent_id = int(parent_id_str)
                         char_length = float(row[3])
                         area_to_mass = float(row[4])
                         area = float(row[5])
@@ -278,6 +284,7 @@ class FragmentParser:
                         
                         fragments['id'].append(frag_id)
                         fragments['name'].append(frag_name)
+                        fragments['parent_id'].append(parent_id)
                         fragments['mass'].append(mass)
                         fragments['position'].append(position)
                         fragments['velocity'].append(velocity)
@@ -291,6 +298,7 @@ class FragmentParser:
             
             # Convert lists to numpy arrays
             fragments['id'] = np.array(fragments['id'], dtype=np.int32)
+            fragments['parent_id'] = np.array(fragments['parent_id'], dtype=np.int32)
             fragments['mass'] = np.array(fragments['mass'])
             fragments['position'] = np.array(fragments['position'])
             fragments['velocity'] = np.array(fragments['velocity'])
@@ -316,6 +324,7 @@ def generate_fragments(obj1_id: int,
                       obj2_pos: np.ndarray,
                       obj2_vel: np.ndarray,
                       min_char_length: float = 0.05,
+                      enforce_mass_conservation: bool = True,
                       breakup_model_path: str = "/home/andrea/LSMS_project/NASA-breakup-model-cpp/build_iridium_cosmos/breakupModel") -> Dict[str, np.ndarray]:
     """
     Generate fragments from a collision using NASA Breakup Model.

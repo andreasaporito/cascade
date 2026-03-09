@@ -30,6 +30,7 @@ class ParticleState:
     bstar: float = 0.0  # For atmospheric models
     char_length: float = 0.05  # Characteristic length for breakup model (m)
     area_to_mass: float = 0.0  # Area-to-mass ratio
+    parent_id: Optional[int] = None  # ID of parent object if this is a fragment
     
     def to_arrays(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return position and velocity as arrays."""
@@ -43,6 +44,7 @@ class CollisionFragmentHandler:
     
     def __init__(self,
                  min_char_length: float = 0.05,
+                 enforce_mass_conservation: bool = True,
                  breakup_model_path: str = "/home/andrea/LSMS_project/NASA-breakup-model-cpp/build_iridium_cosmos/breakupModel"):
         """
         Initialize the collision fragment handler.
@@ -56,6 +58,7 @@ class CollisionFragmentHandler:
         """
         self.min_char_length = min_char_length
         self.breakup_model_path = breakup_model_path
+        self.enforce_mass_conservation = enforce_mass_conservation
         self.next_fragment_id = 50000  # Reserve high IDs for fragments
     
     def set_next_fragment_id(self, next_id: int):
@@ -112,7 +115,8 @@ class CollisionFragmentHandler:
                 obj1_id, obj1_mass, obj1_pos, obj1_vel,
                 obj2_id, obj2_mass, obj2_pos, obj2_vel,
                 min_char_length=self.min_char_length,
-                breakup_model_path=self.breakup_model_path
+                breakup_model_path=self.breakup_model_path,
+                enforce_mass_conservation=self.enforce_mass_conservation
             )
         except Exception as e:
             logger.error(f"Failed to generate fragments: {str(e)}")
@@ -125,6 +129,7 @@ class CollisionFragmentHandler:
         
         for i in range(num_fragments):
             frag_id = self.next_fragment_id + i
+            parent_id = fragments['parent_id'][i]
             frag_pos = fragments['position'][i]
             frag_vel = fragments['velocity'][i]
             frag_mass = fragments['mass'][i]
@@ -134,10 +139,11 @@ class CollisionFragmentHandler:
             # Calculate collision radius from characteristic length
             # Characteristic length is typically related to the sphere radius as: L_c ≈ 2*sqrt(A/pi)
             # where A is the cross-sectional area. For a sphere, r = L_c/2
-            frag_collision_radius = 1.0
+            frag_collision_radius = 50.0
             
             particle_db[len(particle_db)] = ParticleState(
                 id=frag_id,
+                parent_id=parent_id,
                 position=frag_pos,
                 velocity=frag_vel,
                 mass=frag_mass,
@@ -253,12 +259,13 @@ def add_fragments_and_propagate(sim, particle_db, fragments, pi_remove, pj_remov
     # Add fragments
     for i, frag_id in enumerate(fragments['id']):
         frag_pos = fragments['position'][i]
+        frag_parent = fragments['parent_id'][i]
         frag_vel = fragments['velocity'][i]
         frag_mass = fragments['mass'][i]
         frag_char_length = fragments['char_length'][i]
         
         # Calculate collision radius from characteristic length
-        frag_collision_radius = frag_char_length / 2.0
+        frag_collision_radius = 100.0
         
         r_new = np.vstack([r_new, frag_pos])
         v_new = np.vstack([v_new, frag_vel])
@@ -269,6 +276,7 @@ def add_fragments_and_propagate(sim, particle_db, fragments, pi_remove, pj_remov
         new_idx = len(particle_db)
         particle_db[new_idx] = ParticleState(
             id=50000 + i,
+            parent_id=frag_parent,
             position=frag_pos,
             velocity=frag_vel,
             mass=frag_mass,
