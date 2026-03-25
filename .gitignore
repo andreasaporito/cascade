@@ -15,3 +15,7 @@ doc/generated
 # vscode bits.
 .vscode
 cascade.py/simulation-outputs*
+
+cascade.py/_cascade_breakup*
+cascade.py/__pycache__*
+cascade.py/_nasa_breakup_build*

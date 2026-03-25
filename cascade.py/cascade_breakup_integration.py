@@ -45,7 +45,7 @@ class CollisionFragmentHandler:
     def __init__(self,
                  min_char_length: float = 0.05,
                  enforce_mass_conservation: bool = True,
-                 breakup_model_path: str = "/home/andrea/LSMS_project/NASA-breakup-model-cpp/build_iridium_cosmos/breakupModel"):
+                 breakup_model_path: str = None):
         """
         Initialize the collision fragment handler.
         
